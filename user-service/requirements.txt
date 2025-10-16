@@ -1,0 +1,12 @@
+    Django==5.2.7
+    djangorestframework==3.19.0
+    djangorestframework-simplejwt==6.2.2
+    dj-rest-auth==3.2.1
+    django-allauth==0.59.1
+    pyotp==2.8.0
+    qrcode[pil]==8.2
+    Pillow==11.3.0
+    cryptography==41.0.3
+    requests==2.32.1
+    django-cors-headers==4.3.0
+    psycopg2-binary==2.9.8

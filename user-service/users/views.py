@@ -1,13 +1,20 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+import random
+import pyotp
 from rest_framework import status
-from users.serializers import ClientRegisterSerializer
-from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
-from users.serializers import AdvocateRegisterSerializer,LoginSerializer,ForgetPasswordSerializer,ResetPasswordSerializer
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
-import random
-
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from users.serializers import ClientRegisterSerializer
+from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
+from rest_framework.permissions import IsAuthenticated
+from google.oauth2 import id_token
+from users.utils import generate_totp_secret, generate_totp_uri, generate_totp_qr
+from users.serializers import (
+    AdvocateRegisterSerializer,
+    LoginSerializer,
+    ForgetPasswordSerializer,
+    ResetPasswordSerializer)
 
 # Create your views here.
 User = get_user_model()
@@ -63,6 +70,21 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
+    
+        # FOR CHECKING
+        tokens = get_tokens_for_user(user)
+
+        
+        if user.mfa_enabled:
+            return Response({
+                'message':"MFA required",
+                'mfa_type':user.mfa_type,
+                'user_id': user.id,
+                'tokens': tokens
+
+            },status = status.HTTP_200_OK
+            )
+                 
         tokens = get_tokens_for_user(user)
 
         return Response(
@@ -155,3 +177,63 @@ class ResetPasswordView(APIView):
             return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+# ------------------------ MFAAuthenticatonEnable  ----------------------
+
+class EnableMFAView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self,request):
+        user = request.user
+        
+        if user.mfa_enabled:
+            return Response({"message":"MFA already enabled"},status=400)
+        
+        user.mfa_secret = generate_totp_secret()
+        user.mfa_type = 'TOTP'
+        user.mfa_enabled = True
+        user.save()
+        
+        #for printing
+        totp = pyotp.TOTP(user.mfa_secret)
+        current_otp = totp.now()  
+        print(f"🔐 MFA OTP for {user.username}: {current_otp}") 
+        
+        qr_code = generate_totp_qr(user)
+        
+        return Response({
+            "message":"MFA Enabled",
+            "qr_code": qr_code
+        })
+
+# ------------------------ MFAAuthenticatonVerify  ----------------------
+
+class VerifyMFAview(APIView):
+    # permission_classes =[IsAuthenticated]
+    
+    def post(self,request):
+        user_id = request.data.get("user_id")
+        otp_code = request.data.get("otp")
+        
+        if not user_id or not otp_code:
+            return Response({"error": "Missing user_id or OTP"}, status=400)
+
+        try:
+            user =User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error":"user not found"},status=400)
+        print(user_id)
+        
+        totp = pyotp.TOTP(user.mfa_secret)
+        if totp.verify(otp_code):
+            tokens = get_tokens_for_user(user)
+            return Response({
+                 "message": "MFA verified successfully",
+                "tokens": tokens
+            })
+        else:
+            return Response({"error": "Invalid OTP"}, status=400)
+

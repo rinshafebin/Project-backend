@@ -8,10 +8,20 @@ import datetime
 class User(AbstractUser):
     ROLE_CHOICES =(
         ('client','Client'),
-        ('advocate','Advocate'),     
+        ('advocate','Advocate'),   
+        ('admin','Admin'),  
     )
     role= models.CharField(max_length=20,choices=ROLE_CHOICES)
     email = models.EmailField(unique=True)
+    
+    mfa_enabled = models.BooleanField(default=False)
+    mfa_type = models.CharField(
+        max_length=10,
+        choices=[('TOTP','TOTP'),('EMAIL','EMAIL')],
+        blank=True,
+        null=True
+    )
+    mfa_secret = models.CharField(max_length=64, blank=True, null=True)
     
     def __str__(self):
         return f"{self.username} ({self.role})"
@@ -68,3 +78,6 @@ class OTP(models.Model):
     def is_expired(self):
         return timezone.now() >self.created_at + datetime.timedelta(minutes=5)
 
+    def mark_used(self):
+        self.is_used = True
+        self.save()
