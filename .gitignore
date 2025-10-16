@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments 
+*/venv/
+
+# Django
+*.sqlite3
+staticfiles/
+media/
+*.log
+
+# Environment files
+*.env
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# pycache
+__pycache__/
+
+# Migration backup files
+*/migrations/__pycache__/
