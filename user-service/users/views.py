@@ -1,14 +1,15 @@
 import random
-import pyotp
+import pyotp 
 from rest_framework import status
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from users.serializers import ClientRegisterSerializer
-from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
+from rest_framework_simplejwt.tokens import RefreshToken  
 from rest_framework.permissions import IsAuthenticated
 from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from users.utils import generate_totp_secret, generate_totp_uri, generate_totp_qr
 from users.serializers import (
     AdvocateRegisterSerializer,
@@ -212,7 +213,7 @@ class EnableMFAView(APIView):
 # ------------------------ MFAAuthenticatonVerify  ----------------------
 
 class VerifyMFAview(APIView):
-    # permission_classes =[IsAuthenticated]
+    permission_classes =[IsAuthenticated]
     
     def post(self,request):
         user_id = request.data.get("user_id")
