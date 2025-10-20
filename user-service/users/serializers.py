@@ -104,25 +104,23 @@ class AdvocateRegisterSerializer(serializers.ModelSerializer):
 # -------------------------------- login Serializer with password -------------------------------
  
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField(required =True)
-    password = serializers.CharField(write_only=True,required=True)
-    
-    def validate(self,data):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, data):
         email = data.get('email')
         password = data.get('password')
-        
-        try:
-            user =User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({'details : "invalid Credentials'})
-         
-        
-        if not user.check_password(password):
-            raise serializers.ValidationError({'deatail' :"invalid credentials"})
-        
-        data['user'] =user
-        return data
 
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({'detail': "Invalid credentials"})
+
+        if not user.check_password(password):
+            raise serializers.ValidationError({'detail': "Invalid credentials"})
+
+        data['user'] = user
+        return data
 
 # -------------------------------- loginSerializerWithOtp -------------------------------
 

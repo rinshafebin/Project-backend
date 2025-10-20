@@ -2,7 +2,7 @@ from django.urls import path,include
 from users.views import (
     ClientRegisterView,LoginView,
     AdvocateRegisterView,ForgetPasswordView,
-    ResetPasswordView,VerifyMFAview,EnableMFAView)
+    ResetPasswordView,VerifyMFAView,EnableMFAView)
 
 
 urlpatterns = [
@@ -12,7 +12,7 @@ urlpatterns = [
     path('forget-password/',ForgetPasswordView.as_view(),name='forget-password'),
     path('reset-password/',ResetPasswordView.as_view(),name='reset-password'),
     path('enable-mfa/', EnableMFAView.as_view()),
-    path('verify-mfa/', VerifyMFAview.as_view()),
+    path('verify-mfa/', VerifyMFAView.as_view()),
     
 ]
 
