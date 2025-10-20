@@ -2,6 +2,7 @@ import random
 import pyotp
 from rest_framework import status
 from django.core.mail import send_mail
+from smtplib import SMTPException
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from rest_framework.views import APIView
@@ -13,9 +14,6 @@ from google.auth.transport import requests as google_requests
 from users.utils import generate_totp_secret, generate_totp_qr
 from google.oauth2 import id_token
 from google.auth.transport import requests
-
-
-
 from users.serializers import (
     ClientRegisterSerializer,
     AdvocateRegisterSerializer,
@@ -76,7 +74,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
-        # If MFA enabled, ask for verification before issuing tokens
+
         if user.mfa_enabled:
             return Response({
                 'message': "MFA required",
@@ -163,27 +161,36 @@ class ForgetPasswordView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({"error": "No user found with that email"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "No user found with that email"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         otp = str(random.randint(100000, 999999))
-        otp_storage[email] = otp
+        otp_storage[email] = otp 
+        try:
+            send_mail(
+                subject="Your password reset OTP",
+                message=(
+                    f"Hello {user.username},\n\n"
+                    f"Your OTP for password reset is: {otp}\n"
+                    f"This OTP will expire soon."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com"),
+                recipient_list=[email],
+                fail_silently=False,  
+            )
+        except SMTPException:
+            return Response(
+                {"error": "Unable to send email right now. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
 
-        send_mail(
-            subject="Your password reset OTP",
-            message=(
-                f"Hello {user.username},\n\n"
-                f"Your OTP for password reset is: {otp}\n"
-                f"This OTP will expire soon."
-            ),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@example.com"),
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        print(f"[Debug] Password reset OTP for {email}: {otp}") 
 
-        print(f"Password reset OTP for {email}: {otp}")  # for debugging
         return Response({"message": "OTP sent to your email"}, status=status.HTTP_200_OK)
-
-
+    
+    
 # ---------------------- Reset Password ----------------------
 
 class ResetPasswordView(APIView):
