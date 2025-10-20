@@ -11,6 +11,9 @@ from rest_framework.permissions import IsAuthenticated
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from users.utils import generate_totp_secret, generate_totp_qr
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
 
 
 from users.serializers import (
@@ -93,6 +96,59 @@ class LoginView(APIView):
                 'role': user.role
             }
         }, status=status.HTTP_200_OK)
+        
+        
+# ----------------------  Google Authentication ----------------------
+
+
+class GoogleLoginView(APIView):
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response(
+                {'error': 'Google ID token is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                google_requests.Request(),
+                settings.GOOGLE_CLIENT_ID
+            )
+
+            email = idinfo.get('email')
+            if not email:
+                return Response(
+                    {'error': 'Google token has no email'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'No account associated with this Google account'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            tokens = get_tokens_for_user(user)
+
+            return Response({
+                'message': 'Login successful via Google',
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                },
+                'token': tokens['access'],
+                'refresh': tokens['refresh']
+            }, status=status.HTTP_200_OK)
+
+        except ValueError:
+            return Response(
+                {'error': 'Invalid Google token'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 # ---------------------- Forget Password ----------------------
