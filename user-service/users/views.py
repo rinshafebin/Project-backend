@@ -22,10 +22,9 @@ from users.serializers import (
     ResetPasswordSerializer
 )
 
-# ---------------------------------------------------------------------
 User = get_user_model()
-otp_storage = {}  # Temporary storage (use Redis/DB in production)
-# ---------------------------------------------------------------------
+otp_storage = {}  #  Redis/DB in production
+
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -223,7 +222,6 @@ class ResetPasswordView(APIView):
 # ---------------------- Enable MFA ----------------------
 
 class EnableMFAView(APIView):
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
@@ -249,7 +247,6 @@ class EnableMFAView(APIView):
 # ---------------------- Verify MFA ----------------------
 
 class VerifyMFAView(APIView):
-    permission_classes = []  
 
     def post(self, request):
         user_id = request.data.get("user_id")
