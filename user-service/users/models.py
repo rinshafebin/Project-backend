@@ -53,20 +53,20 @@ class AdvocateProfile(models.Model):
         return self.user.get_full_name() or self.user.username
     
     
-class AdvocateCase(models.Model):
-    advocate = models.ForeignKey(AdvocateProfile, on_delete=models.CASCADE, related_name='cases')
-    title = models.CharField(max_length=255)
-    case_type = models.CharField(max_length=50,db_index=True)  
-    court = models.CharField(max_length=255)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    status = models.CharField(max_length=50,db_index=True)  
-    description = models.TextField()
-    role_in_case = models.CharField(max_length=50)  
-    key_achievements = models.TextField()
+# class AdvocateCase(models.Model):
+#     advocate = models.ForeignKey(AdvocateProfile, on_delete=models.CASCADE, related_name='cases')
+#     title = models.CharField(max_length=255)
+#     case_type = models.CharField(max_length=50,db_index=True)  
+#     court = models.CharField(max_length=255)
+#     start_date = models.DateField()
+#     end_date = models.DateField()
+#     status = models.CharField(max_length=50,db_index=True)  
+#     description = models.TextField()
+#     role_in_case = models.CharField(max_length=50)  
+#     key_achievements = models.TextField()
     
-    def __str__(self):
-        return f"{self.title} ({self.status})"
+#     def __str__(self):
+#         return f"{self.title} ({self.status})"
 
 
 class OTP(models.Model):
