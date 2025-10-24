@@ -1,6 +1,12 @@
 from django.db import models
 from django.utils import timezone
-from users.models import User 
+
+
+class User(models.Model):
+    
+    class Meta:
+        db_table = 'users'   # Table name from auth service
+        managed = False      # Do NOT create migrations for this table
 
 
 class Case(models.Model):
@@ -31,6 +37,7 @@ class Case(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'case'
         indexes = [
             models.Index(fields=["client"]),
             models.Index(fields=["advocate"]),
@@ -41,80 +48,6 @@ class Case(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
-
-
-class CaseDocument(models.Model):
-    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name="documents")
-    file_url = models.CharField(max_length=500)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["case"]),
-        ]
-        ordering = ["uploaded_at"]
-
-    def __str__(self):
-        return f"Document for {self.case.title}"
-
-
-class HearingDate(models.Model):
-    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name="hearing_dates")
-    date = models.DateField()
-    notes = models.TextField(blank=True, null=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["case"]),
-            models.Index(fields=["date"]),
-        ]
-        ordering = ["date"]
-
-    def __str__(self):
-        return f"Hearing on {self.date} for {self.case.title}"
-
-
-class Chat(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_chats")
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_chats")
-    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name="chats", null=True, blank=True)
-    message = models.TextField()
-    timestamp = models.DateTimeField(default=timezone.now)
-    is_read = models.BooleanField(default=False)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["sender", "receiver"]),
-            models.Index(fields=["timestamp"]),
-        ]
-        ordering = ["timestamp"]
-
-    def __str__(self):
-        return f"Chat from {self.sender} to {self.receiver}"
-
-
-class Notification(models.Model):
-    client = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="notifications",
-        limit_choices_to={"role": "client"},
-        db_index=True
-    )
-    type = models.CharField(max_length=50, db_index=True)
-    content = models.TextField()
-    read_status = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["client", "read_status"]),
-            models.Index(fields=["type"]),
-        ]
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"Notification ({self.type}) for {self.client.username}"
 
 
 class Payment(models.Model):
@@ -136,6 +69,7 @@ class Payment(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        db_table = 'payment'
         indexes = [
             models.Index(fields=["client"]),
             models.Index(fields=["status"]),
@@ -145,3 +79,29 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.invoice} ({self.status})"
+
+
+
+class Notification(models.Model):
+    client = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        limit_choices_to={"role": "client"},
+        db_index=True
+    )
+    type = models.CharField(max_length=50, db_index=True)
+    content = models.TextField()
+    read_status = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'notification'
+        indexes = [
+            models.Index(fields=["client", "read_status"]),
+            models.Index(fields=["type"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Notification ({self.type}) for {self.client_id}"
