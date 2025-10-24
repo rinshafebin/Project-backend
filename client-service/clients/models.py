@@ -5,8 +5,8 @@ from django.utils import timezone
 class User(models.Model):
     
     class Meta:
-        db_table = 'users'   # Table name from auth service
-        managed = False      # Do NOT create migrations for this table
+        db_table = 'users'   
+        managed = False      
 
 
 class Case(models.Model):

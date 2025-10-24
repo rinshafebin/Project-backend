@@ -73,7 +73,6 @@ class AdvocateProfile(models.Model):
         ]
 
 
-
 class OTP(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     code = models.CharField(max_length=6, db_index=True)
