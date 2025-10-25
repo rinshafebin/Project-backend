@@ -15,18 +15,19 @@ class Case(models.Model):
         ('Pending', 'Pending'),
         ('Closed', 'Closed'),
     ]
-
     title = models.CharField(max_length=255)
     description = models.TextField()
     case_number = models.CharField(max_length=50, unique=True)
     client = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        null=True,
+        on_delete=models.SET_NULL,
         related_name='client_cases',
     )
     advocate = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        null=True,
+        on_delete=models.SET_NULL,
         related_name='advocate_cases',
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
@@ -46,7 +47,10 @@ class CaseDocument(models.Model):
     case = models.ForeignKey(Case, related_name='documents', on_delete=models.CASCADE)
     document = models.FileField(upload_to='case_documents/')
     uploaded_at = models.DateTimeField(default=timezone.now)
-
+    updated_at = models.DateTimeField(auto_now=True) 
+    visible_to_client = models.BooleanField(default=True)  
+    visible_to_advocate = models.BooleanField(default=True) 
+    
     class Meta:
         db_table = 'case_document'
 
