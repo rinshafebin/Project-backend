@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     
 ]
 
+AUTH_USER_MODEL = 'cases.User'
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -77,14 +79,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'case_service.wsgi.application'
 
 
-# case_service/settings.py
 
-# Add this line
-DATABASE_ROUTERS = ['case_service.routers.CasesOnlyRouter']
-
-# Make sure AUTH_USER_MODEL is set
-AUTH_USER_MODEL = 'cases.User'
-# Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {

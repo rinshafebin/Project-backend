@@ -3,28 +3,10 @@ from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 
 
-class User(AbstractUser):
-    """
-    Unmanaged User model - references the users table created by auth-service
-    """
-    ROLE_CHOICES = (
-        ('client', 'Client'),
-        ('advocate', 'Advocate'),
-        ('admin', 'Admin'),
-    )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, db_index=True)
-    email = models.EmailField(unique=True)
-    
-    mfa_enabled = models.BooleanField(default=False)
-    mfa_type = models.CharField(max_length=10, choices=[('TOTP', 'TOTP')], blank=True, null=True)
-    mfa_secret = models.CharField(max_length=64, blank=True, null=True)
-    
+class User(AbstractUser):  
     class Meta:
         db_table = 'users'
-        managed = False  # 👈 CRITICAL: Don't manage this table
-        
-    def __str__(self):
-        return f"{self.username} ({self.role})"
+        managed = False  
 
 
 class Case(models.Model):
@@ -70,3 +52,17 @@ class CaseDocument(models.Model):
 
     def __str__(self):
         return f"Document for {self.case.title}"
+    
+    
+class CaseNote(models.Model):
+    case = models.ForeignKey(Case, related_name='notes', on_delete=models.CASCADE)
+    note = models.TextField()
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'case_note'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Note for {self.case.title} by {self.created_by}"
