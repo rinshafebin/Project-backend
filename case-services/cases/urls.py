@@ -1,19 +1,26 @@
 from django.urls import path
 from .views import (
-    AdvocateCaseListCreateApiView,
-    ClientCaseListApiView,
+    AdvocateCaseListCreateAPIView,
+    ClientCaseListAPIView,
     AdminCaseListAPIView,
     CaseDocumentUploadAPIView,
-    CaseDocumentListApiview,
-    CaseDocumentDetailAPIView
+    CaseDocumentListAPIView,
+    CaseDocumentDetailAPIView,
 )
 
 urlpatterns = [
-    path('advocate/cases/', AdvocateCaseListCreateApiView.as_view(), name='advocate-cases'),
-    path('client/cases/', ClientCaseListApiView.as_view(), name='client-cases'),
-    path('admin/cases/', AdminCaseListAPIView.as_view(), name='admin-cases'),
-    path('documents/upload/', CaseDocumentUploadAPIView.as_view(), name='document-upload'),
-    path('documents/', CaseDocumentListApiview.as_view(), name='document-list'),
-    path('documents/case/<int:case_id>/', CaseDocumentListApiview.as_view(), name='document-list-by-case'),
-    path('documents/<int:pk>/', CaseDocumentDetailAPIView.as_view(), name='document-detail'),
+    # Advocate endpoints
+    path('advocate/', AdvocateCaseListCreateAPIView.as_view(), name='advocate-case-list-create'),
+
+    # Client endpoints
+    path('client/', ClientCaseListAPIView.as_view(), name='client-case-list'),
+
+    # Admin endpoints
+    path('admin/', AdminCaseListAPIView.as_view(), name='admin-case-list'),
+
+    # Case document endpoints
+    path('documents/upload/', CaseDocumentUploadAPIView.as_view(), name='case-document-upload'),
+    path('documents/', CaseDocumentListAPIView.as_view(), name='case-document-list'),
+    path('documents/<int:case_id>/', CaseDocumentListAPIView.as_view(), name='case-document-list-by-case'),
+    path('documents/detail/<int:pk>/', CaseDocumentDetailAPIView.as_view(), name='case-document-detail'),
 ]

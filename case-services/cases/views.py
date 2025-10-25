@@ -1,26 +1,35 @@
-from pydoc import doc
-from urllib import response
-from rest_framework import APIView 
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from cases.authentication import CustomJWTAuthentication
 from cases.models import Case, CaseDocument, CaseNote
-from cases.serializers import CaseDocumentSerializer,CaseNoteSerializer,CaseSerializer
+from cases.serializers import CaseDocumentSerializer, CaseNoteSerializer, CaseSerializer
 
 
-# -------- Advocate apis for creating and getting cases ----------
+# -------- Advocate APIs for creating and getting cases ----------
 
-class AdvocateCaseListCreateApiView(APIView):
-    permission_classes =[IsAuthenticated]
+class AdvocateCaseListCreateAPIView(APIView):
+    authentication_classes = [CustomJWTAuthentication]  
+
+    permission_classes = [IsAuthenticated]
     
-    def get(Self,request):
-        if request.user.rolec != 'advocate':
-            return Response({"detail":"Forbidden"},status=status.HTTP_403_FORBIDDEN)
+    
+    def get(self, request):
+        user = request.user
+        print('Decoded JWT user:', user)
+        
+        if request.user.role != 'advocate':
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         cases = Case.objects.filter(advocate=request.user)
-        serializer = CaseSerializer(cases,many=True)
-        return Response(serializer.data)
+        serializer = CaseSerializer(cases, many=True)
+        return Response({
+            "success": True,
+            "message": f"Found {len(serializer.data)} case(s)",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
     
-    def post(self,request):
+    def post(self, request):
         if request.user.role != 'advocate':
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         
@@ -32,39 +41,35 @@ class AdvocateCaseListCreateApiView(APIView):
             return Response({
                 "success": True,
                 "message": "Case created successfully",
-                "data": serializer.data }, 
-                status=status.HTTP_201_CREATED
-                )
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        
         return Response({
-             "success": False,
+            "success": False,
             "message": "Case creation failed",
             "errors": serializer.errors
-        },
-        status=status.HTTP_400_BAD_REQUEST)
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -----------  clients api for getting the cases ---------------
+# -------- Client APIs for getting cases ---------------
 
-class ClientCaseListApiView(APIView):
-    permission_classes =[IsAuthenticated]
+class ClientCaseListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     
-    def get(self,request):
+    def get(self, request):
         if request.user.role != 'client':
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
-        cases =Case.objects.filter(client =request.user)
-        serializer = CaseSerializer(cases,many=True)
-        return Response(
-            {
+        
+        cases = Case.objects.filter(client=request.user)
+        serializer = CaseSerializer(cases, many=True)
+        return Response({
             "success": True,
             "message": f"Found {len(serializer.data)} case(s)",
             "data": serializer.data
-        },
-        status=status.HTTP_200_OK
-        )
-    
-      
-      
-# -------------   admin view to cases -----------------
+        }, status=status.HTTP_200_OK)
+
+
+# -------- Admin APIs for viewing all cases ----------
 
 class AdminCaseListAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -74,16 +79,20 @@ class AdminCaseListAPIView(APIView):
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         cases = Case.objects.all()
         serializer = CaseSerializer(cases, many=True)
-        return Response(serializer.data)
+        return Response({
+            "success": True,
+            "message": f"Found {len(serializer.data)} case(s)",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
 
-  
-# -------------   case documents -----------------
+
+# -------- Case document upload ----------
 
 class CaseDocumentUploadAPIView(APIView):
     permission_classes = [IsAuthenticated]
     
-    def post(self,request):
-        serializer = CaseDocumentSerializer(data = request.data)
+    def post(self, request):
+        serializer = CaseDocumentSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({
@@ -96,22 +105,25 @@ class CaseDocumentUploadAPIView(APIView):
             "message": "Document upload failed",
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
-            
-    
-# -------------   case documents list -----------------
 
-class CaseDocumentListApiview(APIView):
-    permission_classes =[IsAuthenticated]
+
+# -------- Case documents list ----------
+
+class CaseDocumentListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     
-    def get(self,request,case_id=None):
+    def get(self, request, case_id=None):
+    
         if case_id:
             documents = CaseDocument.objects.filter(case__id=case_id)
-            
-        user =request.user
-        if user.role =="client":
-            documents = documents.filter(visible_to_client=True,case__clients=user)
+        else:
+            documents = CaseDocument.objects.all()
+        
+        user = request.user
+        if user.role == "client":
+            documents = documents.filter(visible_to_client=True, case__client=user)
         elif user.role == "advocate":
-            documents = documents.filter(visible_to_advocate=True,case__advocate=user)
+            documents = documents.filter(visible_to_advocate=True, case__advocate=user)
             
         serializer = CaseDocumentSerializer(documents, many=True)
         return Response({
@@ -119,8 +131,9 @@ class CaseDocumentListApiview(APIView):
             "message": f"Found {len(serializer.data)} document(s)",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
-        
 
+
+# -------- Case document detail ----------
 class CaseDocumentDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

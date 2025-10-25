@@ -1,7 +1,3 @@
-from dataclasses import field, fields
-from pyexpat import model
-from turtle import mode
-from xml.dom.minidom import Document
 from rest_framework import serializers
 from cases.models import Case,CaseDocument,CaseNote
 from django.contrib.auth import get_user_model
