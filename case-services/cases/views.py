@@ -2,7 +2,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from cases.authentication import CustomJWTAuthentication
 from cases.models import Case, CaseDocument, CaseNote
 from cases.serializers import CaseDocumentSerializer, CaseNoteSerializer, CaseSerializer
 
@@ -10,15 +9,12 @@ from cases.serializers import CaseDocumentSerializer, CaseNoteSerializer, CaseSe
 # -------- Advocate APIs for creating and getting cases ----------
 
 class AdvocateCaseListCreateAPIView(APIView):
-    authentication_classes = [CustomJWTAuthentication]  
 
     permission_classes = [IsAuthenticated]
     
     
     def get(self, request):
-        user = request.user
-        print('Decoded JWT user:', user)
-        
+        user = request.user        
         if request.user.role != 'advocate':
             return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         cases = Case.objects.filter(advocate=request.user)

@@ -1,5 +1,5 @@
 import random
-import pyotp
+import pyotp 
 from django.core.mail import send_mail
 from smtplib import SMTPException
 from django.contrib.auth import get_user_model
@@ -21,7 +21,7 @@ from users.serializers import (
 )
 
 User = get_user_model()
-otp_storage = {}  # Use Redis/DB in production
+otp_storage = {} 
 
 
 def get_tokens_for_user(user):
