@@ -4,6 +4,8 @@ from django.utils import timezone
 
 
 class User(AbstractUser):  
+    role = models.CharField(max_length=20)
+    
     class Meta:
         db_table = 'users'
         managed = False  

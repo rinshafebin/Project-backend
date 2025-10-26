@@ -10,7 +10,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
         auth_header = request.headers.get('Authorization')
 
         if not auth_header:
-            return None  # No token provided
+            return None  
 
         parts = auth_header.split()
 

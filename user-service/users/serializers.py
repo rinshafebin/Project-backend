@@ -2,7 +2,6 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from users.models import ClientProfile,AdvocateProfile
-from django.db.models import Q
 import re
 
 User =get_user_model()
@@ -43,63 +42,98 @@ class ClientRegisterSerializer(serializers.ModelSerializer):
     
 # -------------------------------- Advocate Register Serializer -------------------------------
 
-
 class AdvocateRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True,required=True,validators=[validate_password])
-    confirm_password = serializers.CharField(write_only=True,required=True)
-    
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True, required=True)
     phone_number = serializers.CharField(required=True)
-    office_address = serializers.CharField(required=True)
     bar_council_number = serializers.CharField(required=True)
-    specialization = serializers.CharField(required=True)
-    years_of_experience = serializers.IntegerField(required=True)
-    educational_qualification = serializers.CharField(required=True)
-    languages  = serializers.CharField(required=True)
-    bio = serializers.CharField(required=True)
-    profile_picture = serializers.ImageField(required=False,allow_null=True)
-    
-    
+
     class Meta:
         model = User
-        fields = (
-            'username', 'email', 'password', 'confirm_password', 'role',
-            'phone_number', 'office_address', 'bar_council_number',
-            'specialization', 'years_of_experience', 'educational_qualification',
-            'languages', 'bio', 'profile_picture'
-        )
-        
+        fields = ('username', 'email', 'password', 'confirm_password', 'role',
+                  'phone_number', 'bar_council_number')
+
     def validate(self, data):
         if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError({"password" : "password fields didn't match"})
+            raise serializers.ValidationError({"password": "Password fields didn't match"})
         if data['role'] != 'advocate':
-            raise serializers.ValidationError({"role":"Role must be advocate"})
+            raise serializers.ValidationError({"role": "Role must be advocate"})
         return data
-    
+
     def create(self, validated_data):
-        validated_data.pop('confirm_password')   
-        
+        validated_data.pop('confirm_password')
         profile_data = {
             'phone_number': validated_data.pop('phone_number'),
-            'office_address': validated_data.pop('office_address'),
-            'bar_council_number': validated_data.pop('bar_council_number'),
-            'specialization': validated_data.pop('specialization'),
-            'years_of_experience': validated_data.pop('years_of_experience'),
-            'educational_qualification': validated_data.pop('educational_qualification'),
-            'languages': validated_data.pop('languages', ''),
-            'bio': validated_data.pop('bio'),
-            'profile_picture': validated_data.pop('profile_picture', None),
+            'bar_council_number': validated_data.pop('bar_council_number')
         }
-        
         user = User.objects.create_user(
             username=validated_data['username'],
-            email = validated_data['email'],
-            password= validated_data['password'],
-            role = 'advocate'  
+            email=validated_data['email'],
+            password=validated_data['password'],
+            role='advocate'
         )
-        
-        AdvocateProfile.objects.create(user=user,**profile_data)
+        AdvocateProfile.objects.create(user=user, **profile_data)
         return user
+
+
+# class AdvocateRegisterSerializer(serializers.ModelSerializer):
+#     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+#     confirm_password = serializers.CharField(write_only=True, required=True)
+
+#     # Mandatory fields
+#     phone_number = serializers.CharField(required=True)
+#     bar_council_number = serializers.CharField(required=True)
+
+#     # Optional fields for later update
+#     office_address = serializers.CharField(required=False, allow_blank=True)
+#     specialization = serializers.CharField(required=False, allow_blank=True)
+#     years_of_experience = serializers.IntegerField(required=False)
+#     educational_qualification = serializers.CharField(required=False, allow_blank=True)
+#     languages = serializers.CharField(required=False, allow_blank=True)
+#     bio = serializers.CharField(required=False, allow_blank=True)
+#     profile_picture = serializers.ImageField(required=False, allow_null=True)
     
+#     class Meta:
+#         model = User
+#         fields = (
+#             'username', 'email', 'password', 'confirm_password', 'role',
+#             'phone_number', 'bar_council_number', 'office_address', 'specialization',
+#             'years_of_experience', 'educational_qualification', 'languages', 'bio',
+#             'profile_picture'
+#         )
+    
+#     def validate(self, data):
+#         if data['password'] != data['confirm_password']:
+#             raise serializers.ValidationError({"password": "Password fields didn't match"})
+#         if data['role'] != 'advocate':
+#             raise serializers.ValidationError({"role": "Role must be advocate"})
+#         return data
+
+#     def create(self, validated_data):
+#         validated_data.pop('confirm_password')
+        
+#         profile_data = {
+#             'phone_number': validated_data.pop('phone_number'),
+#             'bar_council_number': validated_data.pop('bar_council_number'),
+#             'office_address': validated_data.pop('office_address', ''),
+#             'specialization': validated_data.pop('specialization', ''),
+#             'years_of_experience': validated_data.pop('years_of_experience', 0),
+#             'educational_qualification': validated_data.pop('educational_qualification', ''),
+#             'languages': validated_data.pop('languages', ''),
+#             'bio': validated_data.pop('bio', ''),
+#             'profile_picture': validated_data.pop('profile_picture', None),
+#         }
+        
+#         user = User.objects.create_user(
+#             username=validated_data['username'],
+#             email=validated_data['email'],
+#             password=validated_data['password'],
+#             role='advocate'
+#         )
+        
+#         AdvocateProfile.objects.create(user=user, **profile_data)
+#         return user
+
     
 # -------------------------------- login Serializer with password -------------------------------
  
@@ -181,4 +215,56 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("OTP must be numeric")
         if len(value)!=6:
             raise serializers.ValidationError("OTP must be 6 digits")
+        return value
+    
+    
+    
+# -------------------------------- Advocate Profile Update Serializer --------------------------------
+
+
+class AdvocateProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdvocateProfile
+        fields = (
+            'phone_number',
+            'profile_picture',
+            'office_address',
+            'bar_council_number',
+            'specialization',
+            'years_of_experience',
+            'educational_qualification',
+            'languages',
+            'bio',
+            'certificates',
+        )
+
+    def validate_bar_council_number(self, value):
+        user = self.instance.user if self.instance else None
+        if AdvocateProfile.objects.filter(bar_council_number=value).exclude(user=user).exists():
+            raise serializers.ValidationError("This bar council number is already in use.")
+        return value
+
+    def validate_phone_number(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("Phone number must contain only digits.")
+        if len(value) < 10 or len(value) > 12:
+            raise serializers.ValidationError("Phone number must be between 10 to 12 digits.")
+        return value
+
+
+# -------------------------------- Client Profile Update Serializer --------------------------------
+
+class ClientProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientProfile
+        fields = ('fullname', 'phone_number', 'address', 'profile_picture')
+
+    def validate_phone_number(self, value):
+        user = self.instance.user if self.instance else None
+        if ClientProfile.objects.filter(phone_number=value).exclude(user=user).exists():
+            raise serializers.ValidationError("This phone number is already in use.")
+        if not value.isdigit():
+            raise serializers.ValidationError("Phone number must contain only digits.")
+        if len(value) < 10 or len(value) > 12:
+            raise serializers.ValidationError("Phone number must be between 10 to 12 digits.")
         return value

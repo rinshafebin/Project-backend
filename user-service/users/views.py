@@ -12,12 +12,17 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from users.utils import generate_totp_secret, generate_totp_qr
+from rest_framework.permissions import AllowAny,IsAuthenticated
+from users.serializers import AdvocateProfileUpdateSerializer
+from users.models import AdvocateProfile,ClientProfile
 from users.serializers import (
     ClientRegisterSerializer,
     AdvocateRegisterSerializer,
     LoginSerializer,
     ForgetPasswordSerializer,
-    ResetPasswordSerializer
+    ResetPasswordSerializer,
+    ClientProfileUpdateSerializer,
+    AdvocateProfileUpdateSerializer
 )
 
 User = get_user_model()
@@ -32,9 +37,10 @@ def get_tokens_for_user(user):
     }
 
 
-# ---------------- Client Register ----------------
+# -------------------------------- Client Register --------------------------------
 
 class ClientRegisterView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = ClientRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -50,9 +56,11 @@ class ClientRegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ---------------- Advocate Register ----------------
+# -------------------------------- Advocate Register -------------------------------
 
 class AdvocateRegisterView(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         serializer = AdvocateRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -68,7 +76,7 @@ class AdvocateRegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ---------------- Login ----------------
+# -------------------------------- Login --------------------------------
 
 class LoginView(APIView):
     def post(self, request):
@@ -80,7 +88,7 @@ class LoginView(APIView):
             return Response({
                 'message': "MFA required",
                 'mfa_type': user.mfa_type,
-                'user_id': user.id
+                'user_id': user.id,
             }, status=status.HTTP_200_OK)
 
         tokens = get_tokens_for_user(user)
@@ -97,7 +105,7 @@ class LoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-# ---------------- Google Login ----------------
+# -------------------------------- Google Login -------------------------------
 
 class GoogleLoginView(APIView):
     def post(self, request):
@@ -137,7 +145,7 @@ class GoogleLoginView(APIView):
             return Response({'error': 'Invalid Google token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ---------------- Forget Password ----------------
+# -------------------------------- Forget Password --------------------------------
 
 class ForgetPasswordView(APIView):
     def post(self, request):
@@ -168,7 +176,7 @@ class ForgetPasswordView(APIView):
         return Response({"message": "OTP sent to your email"}, status=status.HTTP_200_OK)
 
 
-# ---------------- Reset Password ----------------
+# -------------------------------- Reset Password --------------------------------
 
 class ResetPasswordView(APIView):
     def post(self, request):
@@ -194,7 +202,7 @@ class ResetPasswordView(APIView):
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
-# ---------------- Enable MFA ----------------
+# -------------------------------- Enable MFA --------------------------------
 
 class EnableMFAView(APIView):
     permission_classes = [IsAuthenticated]
@@ -219,7 +227,7 @@ class EnableMFAView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-# ---------------- Verify MFA ----------------
+# -------------------------------- Verify MFA --------------------------------
 
 class VerifyMFAView(APIView):
     def post(self, request):
@@ -264,3 +272,57 @@ class VerifyMFAView(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# -------------------------------- Advocate Profile View --------------------------------
+
+class AdvocateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = request.user.advocate_profile
+        except AdvocateProfile.DoesNotExist:
+            return Response({"success": False, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AdvocateProfileUpdateSerializer(profile)
+        return Response({"success": True, "profile": serializer.data}, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        try:
+            profile = request.user.advocate_profile
+        except AdvocateProfile.DoesNotExist:
+            return Response({"success": False, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AdvocateProfileUpdateSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"success": True, "message": "Profile updated successfully", "profile": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# -------------------------------- Client Profile View --------------------------------
+
+class ClientProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            profile = request.user.client_profile
+        except ClientProfile.DoesNotExist:
+            return Response({"success": False, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ClientProfileUpdateSerializer(profile)
+        return Response({"success": True, "profile": serializer.data}, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        try:
+            profile = request.user.client_profile
+        except ClientProfile.DoesNotExist:
+            return Response({"success": False, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ClientProfileUpdateSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"success": True, "message": "Profile updated successfully", "profile": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

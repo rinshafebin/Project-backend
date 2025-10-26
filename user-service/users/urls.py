@@ -3,10 +3,14 @@ from users.views import (
     ClientRegisterView,LoginView,
     AdvocateRegisterView,ForgetPasswordView,
     ResetPasswordView,VerifyMFAView,EnableMFAView,
-    GoogleLoginView)
+    GoogleLoginView,
+    AdvocateProfileView,
+    ClientProfileView
+    )
 
 
 urlpatterns = [
+    
     path('client-register/',ClientRegisterView.as_view(),name='client-register'),
     path('advocate-register/',AdvocateRegisterView.as_view(),name='advocate-register'),
     path('login/',LoginView.as_view(),name='login'),
@@ -15,6 +19,8 @@ urlpatterns = [
     path('reset-password/',ResetPasswordView.as_view(),name='reset-password'),
     path('enable-mfa/', EnableMFAView.as_view()),
     path('verify-mfa/', VerifyMFAView.as_view()),
+    path('advocate-profile/', AdvocateProfileView.as_view(), name='advocate-profile'),
+    path('client-profile/', ClientProfileView.as_view(), name='client-profile'),
     
 ]
 

@@ -31,10 +31,10 @@ class CaseSerializer(serializers.ModelSerializer):
     advocate = UserSerializer(read_only = True)
     
     class Meta:
-        models = Case
+        model = Case
         fields = [
             'id','title','description','case_number','client','advocate','status',
-            'hearing_date','created_at','updated_at''documents','notes'
+            'hearing_date','created_at','updated_at','documents','notes'
         ]
         
         

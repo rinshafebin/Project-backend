@@ -1,3 +1,4 @@
+from ast import mod
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -35,6 +36,7 @@ class User(AbstractUser):
 
 class ClientProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile')
+    fullname = models.CharField(max_length=100,blank=True, null=True)
     phone_number = models.CharField(max_length=12, db_index=True)
     address = models.TextField()
     profile_picture = models.ImageField(upload_to='clients/', blank=True, null=True)
@@ -61,6 +63,7 @@ class AdvocateProfile(models.Model):
     educational_qualification = models.CharField(max_length=200)
     languages = models.CharField(max_length=100, blank=True, null=True)
     bio = models.TextField()
+    certificates = models.ImageField(upload_to='certificates/',blank=True,null=True)
     
     def __str__(self):
         return self.user.get_full_name() or self.user.username
