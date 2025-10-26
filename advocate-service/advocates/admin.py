@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Case, CaseDocument, CaseNote
+from advocates.models import Case, CaseDocument, CaseNote
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from cases.models import Case,CaseDocument,CaseNote
+from advocates.models import Case,CaseDocument,CaseNote
 from django.contrib.auth import get_user_model
 
 User =get_user_model()

@@ -2,9 +2,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from cases.models import Case, CaseDocument, CaseNote
-from cases.serializers import CaseDocumentSerializer, CaseNoteSerializer, CaseSerializer
-from cases.permissions import IsAdvocate, IsClient, IsAdmin
+from advocates.models import Case, CaseDocument, CaseNote
+from advocates.serializers import CaseDocumentSerializer, CaseNoteSerializer, CaseSerializer
+from advocates.permissions import IsAdvocate, IsClient, IsAdmin
 
 
 # ------------------ Advocate APIs --------------------
