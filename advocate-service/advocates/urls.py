@@ -1,26 +1,27 @@
 from django.urls import path
-from .views import (
-    AdvocateCaseListCreateAPIView,
-    ClientCaseListAPIView,
-    AdminCaseListAPIView,
-    CaseDocumentUploadAPIView,
-    CaseDocumentListAPIView,
-    CaseDocumentDetailAPIView,
+from advocates.views import (
+    AdvocateTeamListCreateView,
+    AdvocateTeamDetailView,
+    AdvocateTeamMemberView,
+    CaseListCreateView,
+    CaseDetailView,
+    CaseAddTeamMemberView,
+    CaseDocumentView,
+    CaseNotesView,
 )
 
 urlpatterns = [
-    # Advocate endpoints
-    path('advocate/', AdvocateCaseListCreateAPIView.as_view(), name='advocate-case-list-create'),
+    # ---------------- Advocate Team ----------------
+    path('teams/', AdvocateTeamListCreateView.as_view(), name='advocate-team-list-create'),
+    path('teams/<int:pk>/', AdvocateTeamDetailView.as_view(), name='advocate-team-detail'),
+    path('teams/<int:pk>/members/', AdvocateTeamMemberView.as_view(), name='advocate-team-member-manage'),
 
-    # Client endpoints
-    path('client/', ClientCaseListAPIView.as_view(), name='client-case-list'),
+    # ---------------- Cases ----------------
+    path('cases/', CaseListCreateView.as_view(), name='advocate-case-list-create'),
+    path('cases/<int:pk>/', CaseDetailView.as_view(), name='advocate-case-detail'),
+    path('cases/<int:pk>/add-member/', CaseAddTeamMemberView.as_view(), name='case-add-team-member'),
 
-    # Admin endpoints
-    path('admin/', AdminCaseListAPIView.as_view(), name='admin-case-list'),
-
-    # Case document endpoints
-    path('documents/upload/', CaseDocumentUploadAPIView.as_view(), name='case-document-upload'),
-    path('documents/', CaseDocumentListAPIView.as_view(), name='case-document-list'),
-    path('documents/<int:case_id>/', CaseDocumentListAPIView.as_view(), name='case-document-list-by-case'),
-    path('documents/detail/<int:pk>/', CaseDocumentDetailAPIView.as_view(), name='case-document-detail'),
+    # ---------------- Documents & Notes ----------------
+    path('cases/<int:case_id>/documents/', CaseDocumentView.as_view(), name='case-documents'),
+    path('cases/<int:case_id>/notes/', CaseNotesView.as_view(), name='case-notes'),
 ]

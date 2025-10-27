@@ -75,65 +75,6 @@ class AdvocateRegisterSerializer(serializers.ModelSerializer):
         AdvocateProfile.objects.create(user=user, **profile_data)
         return user
 
-
-# class AdvocateRegisterSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-#     confirm_password = serializers.CharField(write_only=True, required=True)
-
-#     # Mandatory fields
-#     phone_number = serializers.CharField(required=True)
-#     bar_council_number = serializers.CharField(required=True)
-
-#     # Optional fields for later update
-#     office_address = serializers.CharField(required=False, allow_blank=True)
-#     specialization = serializers.CharField(required=False, allow_blank=True)
-#     years_of_experience = serializers.IntegerField(required=False)
-#     educational_qualification = serializers.CharField(required=False, allow_blank=True)
-#     languages = serializers.CharField(required=False, allow_blank=True)
-#     bio = serializers.CharField(required=False, allow_blank=True)
-#     profile_picture = serializers.ImageField(required=False, allow_null=True)
-    
-#     class Meta:
-#         model = User
-#         fields = (
-#             'username', 'email', 'password', 'confirm_password', 'role',
-#             'phone_number', 'bar_council_number', 'office_address', 'specialization',
-#             'years_of_experience', 'educational_qualification', 'languages', 'bio',
-#             'profile_picture'
-#         )
-    
-#     def validate(self, data):
-#         if data['password'] != data['confirm_password']:
-#             raise serializers.ValidationError({"password": "Password fields didn't match"})
-#         if data['role'] != 'advocate':
-#             raise serializers.ValidationError({"role": "Role must be advocate"})
-#         return data
-
-#     def create(self, validated_data):
-#         validated_data.pop('confirm_password')
-        
-#         profile_data = {
-#             'phone_number': validated_data.pop('phone_number'),
-#             'bar_council_number': validated_data.pop('bar_council_number'),
-#             'office_address': validated_data.pop('office_address', ''),
-#             'specialization': validated_data.pop('specialization', ''),
-#             'years_of_experience': validated_data.pop('years_of_experience', 0),
-#             'educational_qualification': validated_data.pop('educational_qualification', ''),
-#             'languages': validated_data.pop('languages', ''),
-#             'bio': validated_data.pop('bio', ''),
-#             'profile_picture': validated_data.pop('profile_picture', None),
-#         }
-        
-#         user = User.objects.create_user(
-#             username=validated_data['username'],
-#             email=validated_data['email'],
-#             password=validated_data['password'],
-#             role='advocate'
-#         )
-        
-#         AdvocateProfile.objects.create(user=user, **profile_data)
-#         return user
-
     
 # -------------------------------- login Serializer with password -------------------------------
  

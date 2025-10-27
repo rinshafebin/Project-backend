@@ -35,6 +35,11 @@ class Case(models.Model):
         ('Medium', 'Medium'),
         ('Low', 'Low'),
     ]
+    RESULT_CHOICES = [
+    ('Won', 'Won'),
+    ('Lost', 'Lost'),
+    ('Pending', 'Pending'),
+    ]
 
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -43,6 +48,7 @@ class Case(models.Model):
     advocate = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='advocate_cases')
     team_members = models.ManyToManyField(User, related_name='assisting_cases', blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='Pending')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
     hearing_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
