@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from advocates.models import Case, CaseDocument, CaseNote,AdvocateTeam,CaseTeamMember
+from advocates.models import Case, CaseDocument, CaseNote,AdvocateTeam
+from django.shortcuts import get_object_or_404
 from advocates.permissions import IsAdvocate
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -233,7 +234,7 @@ class CaseAddTeamMemberView(APIView):
 # ------------------ Case DOCUMENTS  View --------------------
 
 class CaseDocumentView(APIView):
-    permission_classes = [IsAuthenticated,IsAdvocate]
+    permission_classes = [IsAuthenticated, IsAdvocate]
 
     def get(self, request, case_id):
         documents = CaseDocument.objects.filter(case_id=case_id)
@@ -243,26 +244,24 @@ class CaseDocumentView(APIView):
             "message": f"Found {len(serializer.data)} document(s)",
             "data": serializer.data
         }, status=status.HTTP_200_OK)
-        
-        
-    def post(self, request,case_id):
-        try:
-            case= Case.objects.get(pk=case_id)
-            serializer = CaseDocumentSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save(case=case)
-                return Response({
-                    "success": True,
-                    "message": "Document uploaded successfully",
-                    "data": serializer.data
-                }, status=status.HTTP_201_CREATED)
-        except Case.DoesNotExist:
-            return Response({
-                "success": False,
-                "message": "Document upload failed",
-             "errors": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
 
+    def post(self, request, case_id):
+        case = get_object_or_404(Case, pk=case_id)
+        serializer = CaseDocumentSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(case=case)
+            return Response({
+                "success": True,
+                "message": "Document uploaded successfully",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+
+        return Response({
+            "success": False,
+            "message": "Document upload failed",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CaseNotesView(APIView):
