@@ -8,9 +8,12 @@ from advocates.views import (
     CaseAddTeamMemberView,
     CaseDocumentView,
     CaseNotesView,
+    AdvocateDashboardView
 )
 
 urlpatterns = [
+    path('dashboard/', AdvocateDashboardView.as_view(), name='advocate-dashboard'),
+
     # ---------------- Advocate Team ----------------
     path('teams/', AdvocateTeamListCreateView.as_view(), name='advocate-team-list-create'),
     path('teams/<int:pk>/', AdvocateTeamDetailView.as_view(), name='advocate-team-detail'),

@@ -1,4 +1,5 @@
 from functools import partial
+from time import timezone
 from urllib import request, response
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -99,17 +100,33 @@ class AdvocateTeamMemberView(APIView):
 
 
 class AdvocateDashboardView(APIView):
-    permission_classes =[IsAuthenticated,IsAdvocate]
-    def get(self,request):
-        user=request.user
-        total_cases= Case.objects.filter(advocate=user).count()
-        active_cases = Case.objects.filter(advocate=user,status='Active').count()
-        completed_cases = Case.objects.filter(advocate=user,status="Closed").count()
-        won_cases = Case.objects.filter(advocate=user, result='Won').count()
-        lost_cases = Case.objects.filter(advocate=user, result='Lost').count()
+    permission_classes = [IsAuthenticated, IsAdvocate]
 
+    def get(self, request):
+        advocate = request.user
+        cases = Case.objects.filter(advocate=advocate)
+
+        # --- Case counts ---
+        total_cases = cases.count()
+        active_cases = cases.filter(status='Active').count()
+        completed_cases = cases.filter(status='Closed').count()
+
+        # --- Result-based stats ---
+        won_cases = cases.filter(result='Won').count()
+        lost_cases = cases.filter(result='Lost').count()
         total_decided_cases = won_cases + lost_cases
         win_rate = (won_cases / total_decided_cases * 100) if total_decided_cases > 0 else 0
+
+        # --- Client count ---
+        total_clients = cases.values('client').distinct().count()
+
+        # --- Upcoming hearings ---
+        today = timezone.now().date()
+        upcoming_hearings = (
+            cases.filter(hearing_date__gte=today)
+            .order_by('hearing_date')
+            .values('title', 'hearing_date', 'status')
+        )
 
         return Response({
             "total_cases": total_cases,
@@ -118,9 +135,10 @@ class AdvocateDashboardView(APIView):
             "won_cases": won_cases,
             "lost_cases": lost_cases,
             "win_rate": round(win_rate, 2),
+            "total_clients": total_clients,
+            "upcoming_hearings": list(upcoming_hearings),
         })
         
-
 # ------------------ CaseManagement APIs --------------------
 
 class CaseListCreateView(APIView):

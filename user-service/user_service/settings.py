@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt', 
     'corsheaders',
     'users',
+    'django_celery_results',
 
 ]
 
@@ -137,17 +138,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-
-
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-]
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5174",
-]
-
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 AUTH_USER_MODEL = 'users.User'
@@ -181,3 +173,11 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
+
+CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata'
+
