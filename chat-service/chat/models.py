@@ -1,15 +1,18 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
 
 
-class User(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    role = models.CharField(max_length=20)
+
+
+class User(AbstractUser):
+    role = models.CharField(max_length=20)  
 
     class Meta:
-        db_table = 'users'  
-        managed = False     
+        db_table = 'users'
+        managed = False  
+
 
 
 
