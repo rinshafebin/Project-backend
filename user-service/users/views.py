@@ -286,6 +286,7 @@ class AdvocateProfileView(APIView):
             return Response({"success": False, "message": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = AdvocateProfileUpdateSerializer(profile)
+        print(serializer.data)
         return Response({"success": True, "profile": serializer.data}, status=status.HTTP_200_OK)
 
     def put(self, request):

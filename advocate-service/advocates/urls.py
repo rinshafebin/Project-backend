@@ -8,7 +8,7 @@ from advocates.views import (
     CaseAddTeamMemberView,
     CaseDocumentView,
     CaseNotesView,
-    AdvocateDashboardView
+    AdvocateDashboardView,
 )
 
 urlpatterns = [
