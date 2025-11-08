@@ -1,3 +1,5 @@
+from ast import mod
+from turtle import mode
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -7,35 +9,55 @@ import uuid
 import mimetypes
 
 
-
-
 class User(AbstractUser):
-    role = models.CharField(max_length=20)  
+    role = models.CharField(max_length=20)
     mfa_enabled = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'users'
-        managed = False  
-
-
+        managed = False
+  
+      
 class ChatRoom(models.Model):
-    ROOM_TYPES = [
-        ('private', 'Private'),
-        ('group', 'Group')
+    ROOM_TYPES =[
+        ('private','Private'),
+        ('group','Group')
     ]
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255, unique=True)
-    room_type = models.CharField(max_length=10, choices=ROOM_TYPES, default='private')
-    participants = models.ManyToManyField(User, related_name='chatrooms')
+    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    name = models.CharField(max_length=255,unique=True)
+    room_type = models.CharField(max_length=10,choices=ROOM_TYPES,default='private')
     created_at = models.DateTimeField(auto_now_add=True)
-    last_message_at = models.DateTimeField(null=True, blank=True)  
-
+    last_message_at = models.DateTimeField(null=True,blank=True)
+    
     class Meta:
-        ordering = ['-last_message_at']
-
+        ordering =['-last_message_at']
+        
     def __str__(self):
         return self.name
+    
+
+class Participent(models.Model):
+    ROLE_CHOICES =[
+        ('owner','Owner'),
+        ('member','Member'),
+        ('guest','Guest')
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='participants')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='room_participations')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='member')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_muted = models.BooleanField(default=False)
+    is_removed = models.BooleanField(default=False)
+    
+    class Meta:
+        unique_together = ('room', 'user')  
+        ordering = ['joined_at']
+
+    def __str__(self):
+        return f"{self.user.username} in {self.room.name}"
+    
 
 
 class Message(models.Model):
@@ -49,10 +71,10 @@ class Message(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     room = models.ForeignKey(ChatRoom, related_name='messages', on_delete=models.CASCADE)
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.SET_NULL, null=True)
-    content = models.TextField(blank=True)  # blank for file-only messages
+    content = models.TextField(blank=True)
     file = models.FileField(upload_to='chat_files/', blank=True, null=True)
     file_name = models.CharField(max_length=255, blank=True, null=True)
-    file_type = models.CharField(max_length=50, blank=True, null=True)  # MIME type
+    file_type = models.CharField(max_length=50, blank=True, null=True)
     timestamp = models.DateTimeField(default=timezone.now)
     read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
     edited = models.BooleanField(default=False)
@@ -72,8 +94,6 @@ class Message(models.Model):
             self.file_name = self.file.name
             self.file_type, _ = mimetypes.guess_type(self.file.name)
         super().save(*args, **kwargs)
-
-        # Update ChatRoom last_message_at
         self.room.last_message_at = self.timestamp
         self.room.save(update_fields=['last_message_at'])
 
@@ -91,3 +111,5 @@ class Message(models.Model):
         sender_name = self.sender.username if self.sender else "Deleted User"
         preview = self.content[:20] + ("..." if len(self.content) > 20 else "")
         return f"{sender_name} @ {self.timestamp}: {preview}"
+
+
