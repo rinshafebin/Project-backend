@@ -5,7 +5,8 @@ from users.views import (
     ResetPasswordView,VerifyMFAView,EnableMFAView,
     GoogleLoginView,
     AdvocateProfileView,
-    ClientProfileView
+    ClientProfileView,
+    ValidateTokenView
     )
 
 
@@ -21,6 +22,8 @@ urlpatterns = [
     path('verify-mfa/', VerifyMFAView.as_view()),
     path('advocate-profile/', AdvocateProfileView.as_view(), name='advocate-profile'),
     path('client-profile/', ClientProfileView.as_view(), name='client-profile'),
+    path('validate-token/', ValidateTokenView.as_view(), name='validate-token'),
+
     
 ]
 

@@ -327,3 +327,21 @@ class ClientProfileView(APIView):
             serializer.save()
             return Response({"success": True, "message": "Profile updated successfully", "profile": serializer.data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# -------------------------------- Token Validation for Other Microservices --------------------------------
+class ValidateTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "valid": True,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role
+            }
+        }, status=status.HTTP_200_OK)
