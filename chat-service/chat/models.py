@@ -1,5 +1,3 @@
-from ast import mod
-from turtle import mode
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -10,39 +8,41 @@ import mimetypes
 
 
 class User(AbstractUser):
-    role = models.CharField(max_length=20)
+    role = models.CharField(max_length=20)  
     mfa_enabled = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'users'
-        managed = False
-  
-      
+        managed = False  
+
+
+
 class ChatRoom(models.Model):
-    ROOM_TYPES =[
-        ('private','Private'),
-        ('group','Group')
+    ROOM_TYPES = [
+        ('private', 'Private'),
+        ('group', 'Group')
     ]
-    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
-    name = models.CharField(max_length=255,unique=True)
-    room_type = models.CharField(max_length=10,choices=ROOM_TYPES,default='private')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255, unique=True)
+    room_type = models.CharField(max_length=10, choices=ROOM_TYPES, default='private')
     created_at = models.DateTimeField(auto_now_add=True)
-    last_message_at = models.DateTimeField(null=True,blank=True)
-    
+    last_message_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
-        ordering =['-last_message_at']
-        
+        ordering = ['-last_message_at']
+
     def __str__(self):
         return self.name
-    
 
-class Participent(models.Model):
-    ROLE_CHOICES =[
-        ('owner','Owner'),
-        ('member','Member'),
-        ('guest','Guest')
+
+class Participant(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('member', 'Member'),
+        ('guest', 'Guest')
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='room_participations')
@@ -50,14 +50,14 @@ class Participent(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
     is_muted = models.BooleanField(default=False)
     is_removed = models.BooleanField(default=False)
-    
+
     class Meta:
         unique_together = ('room', 'user')  
         ordering = ['joined_at']
 
     def __str__(self):
         return f"{self.user.username} in {self.room.name}"
-    
+
 
 
 class Message(models.Model):
@@ -111,5 +111,3 @@ class Message(models.Model):
         sender_name = self.sender.username if self.sender else "Deleted User"
         preview = self.content[:20] + ("..." if len(self.content) > 20 else "")
         return f"{sender_name} @ {self.timestamp}: {preview}"
-
-
