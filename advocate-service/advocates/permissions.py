@@ -1,13 +1,10 @@
+# advocates/permissions.py
 from rest_framework.permissions import BasePermission
 
 class IsAdvocate(BasePermission):
+    """
+    Allow only users with role 'advocate'.
+    """
     def has_permission(self, request, view):
-        return getattr(request.user, 'role', None) == 'advocate'
-
-class IsClient(BasePermission):
-    def has_permission(self, request, view):
-        return getattr(request.user, 'role', None) == 'client'
-
-class IsAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return getattr(request.user, 'role', None) == 'admin'
+        user = request.user
+        return bool(user and getattr(user, "role", None) == "advocate")
