@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'chat',
     'notifications',
     'corsheaders',
+    'django_celery_results',
 
 ]
 
@@ -170,21 +171,16 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=2),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ALGORITHM': config('JWT_ALGORITHM', default='HS256'),
     'SIGNING_KEY': config('JWT_SECRET_KEY'),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
 # Celery Configuration with RabbitMQ
 CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
 CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Kolkata'
 CELERY_TASK_DEFAULT_QUEUE = 'user_service_queue'
-
 

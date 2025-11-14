@@ -1,8 +1,6 @@
 from django.contrib import admin
-from users.models import ClientProfile,AdvocateProfile,OTP
+from users.models import ClientProfile, User,OTP
 # Register your models here.
 
-admin.site.register(ClientProfile)
-admin.site.register(AdvocateProfile)
 admin.site.register(OTP)
-
+admin.site.register(User)

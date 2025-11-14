@@ -1,12 +1,11 @@
 import os
 from celery import Celery
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'advocate_service.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "user_service.settings")
 
-app = Celery('advocate_service')
-app.config_from_object('django.conf:settings', namespace='CELERY')
+app = Celery("user_service")
+
+app.conf.broker_url = "amqp://guest:guest@localhost:5672//"
+app.conf.result_backend = "rpc://"
+
 app.autodiscover_tasks()
-
-@app.task(bind=True)
-def debug_task(self):
-    print(f'Request: {self.request!r}')
