@@ -2,7 +2,6 @@
 from django.db import models
 from django.utils import timezone
 
-# Unmanaged User mapping to shared 'users' table
 class User(models.Model):
     id = models.BigAutoField(primary_key=True)
     username = models.CharField(max_length=150)
@@ -11,10 +10,11 @@ class User(models.Model):
 
     class Meta:
         db_table = "users"
-        managed = False 
+        managed = False
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
 
 
 class Specialization(models.Model):

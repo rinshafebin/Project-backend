@@ -1,26 +1,53 @@
+# advocates/admin.py
 from django.contrib import admin
-from advocates.models import Case, CaseDocument, CaseNote
-
-@admin.register(Case)
-class CaseAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'case_number', 'client', 'advocate', 'status', 'hearing_date', 'created_at')
-    search_fields = ('title', 'case_number', 'client__username', 'advocate__username')
-    list_filter = ('status', 'hearing_date', 'created_at')
-    ordering = ('-created_at',)
+from .models import User, Specialization, AdvocateProfile, AdvocateTeam, TeamMember
 
 
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ("id", "username", "email", "role")
+    search_fields = ("username", "email", "role")
+    readonly_fields = ("id", "username", "email", "role")
 
-@admin.register(CaseDocument)
-class CaseDocumentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'case', 'document', 'uploaded_at', 'visible_to_client', 'visible_to_advocate')
-    search_fields = ('case__title',)
-    list_filter = ('visible_to_client', 'visible_to_advocate', 'uploaded_at')
-    ordering = ('-uploaded_at',)
+    def has_add_permission(self, request):
+        return False  
+
+    def has_delete_permission(self, request, obj=None):
+        return False  
 
 
-@admin.register(CaseNote)
-class CaseNoteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'case', 'created_by', 'created_at')
-    search_fields = ('case__title', 'created_by__username')
-    list_filter = ('created_at',)
-    ordering = ('-created_at',)
+@admin.register(Specialization)
+class SpecializationAdmin(admin.ModelAdmin):
+    list_display = ("id", "name")
+    search_fields = ("name",)
+
+
+
+@admin.register(AdvocateProfile)
+class AdvocateProfileAdmin(admin.ModelAdmin):
+    list_display = ("full_name", "user", "bar_council_id", "is_verified", "rating", "cases_count", "wins_count")
+    search_fields = ("full_name", "user__username", "bar_council_id")
+    list_filter = ("is_verified",)
+    filter_horizontal = ("specializations",)
+    readonly_fields = ("cases_count", "wins_count", "created_at", "updated_at")
+
+
+
+class TeamMemberInline(admin.TabularInline):
+    model = TeamMember
+    extra = 1  # number of extra forms
+    autocomplete_fields = ("user",)
+
+
+@admin.register(AdvocateTeam)
+class AdvocateTeamAdmin(admin.ModelAdmin):
+    list_display = ("id", "lead", "created_at")
+    search_fields = ("lead__username",)
+    inlines = [TeamMemberInline]
+
+
+
+@admin.register(TeamMember)
+class TeamMemberAdmin(admin.ModelAdmin):
+    list_display = ("team", "user", "joined_at")
+    search_fields = ("team__lead__username", "user__username")

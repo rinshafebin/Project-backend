@@ -16,6 +16,9 @@ class User(AbstractUser):
     mfa_type = models.CharField(max_length=10, choices=[('TOTP','TOTP')], blank=True, null=True)
     mfa_secret = models.CharField(max_length=64, blank=True, null=True)
 
+
+    REQUIRED_FIELDS = ['email']
+    
     def __str__(self):
         return f"{self.username} ({self.role})"
 

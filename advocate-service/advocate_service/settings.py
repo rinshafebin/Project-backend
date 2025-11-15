@@ -163,3 +163,5 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Kolkata'
 
+
+CASE_SERVICE_URL = "http://localhost:8002/api" 
