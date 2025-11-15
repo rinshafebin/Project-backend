@@ -1,58 +1,47 @@
-import random
-import pyotp
-from smtplib import SMTPException
-
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib.auth import get_user_model
-
-from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate, get_user_model
+import pyotp
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from django.conf import settings
 
-from users.utils import generate_totp_secret, generate_totp_qr
 from users.serializers import (
-    ClientRegisterSerializer,
+    UserRegisterSerializer,
     AdvocateRegisterSerializer,
-    LoginSerializer,
-    ForgetPasswordSerializer,
-    ResetPasswordSerializer,
+    ClientProfileSerializer,
+    AdvocateProfileSerializer
 )
-
-from .tasks import send_welcome_email, emit_user_created_event
+from users.tasks import send_welcome_email_task
 
 User = get_user_model()
-otp_storage = {}   
 
 
-# -------------------------- TOKEN GENERATOR -------------------------- #
+def custom_response(message, status_code=200, status_type="success", data=None):
+    response = {
+        "status": status_type,
+        "code": status_code,
+        "message": message,
+    }
+    if data:
+        response["data"] = data
+    return Response(response, status=status_code)
 
-def get_tokens_for_user(user):
-    refresh = RefreshToken.for_user(user)
-    return {"refresh": str(refresh), "access": str(refresh.access_token)}
 
-
-# ---------------------------- REGISTER VIEWS ---------------------------- #
-
-class ClientRegisterView(APIView):
+class UserRegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = ClientRegisterSerializer(data=request.data)
+        serializer = UserRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = serializer.save()
-
-        send_welcome_email.delay(user.email, user.username)
-
-        emit_user_created_event(user.id, role="client", profile_payload=None)
-
-        return Response({"message": "Client registered"}, status=status.HTTP_201_CREATED)
+        send_welcome_email_task.delay(user.email, user.username)
+        return custom_response(
+            "User registered successfully",
+            status_code=201,
+            data={"user_id": user.id}
+        )
 
 
 class AdvocateRegisterView(APIView):
@@ -61,43 +50,36 @@ class AdvocateRegisterView(APIView):
     def post(self, request):
         serializer = AdvocateRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = serializer.save()
-        profile_data = getattr(user, "_initial_profile_data", None)
+        send_welcome_email_task.delay(user.email, user.username)
+        return custom_response(
+            "Advocate registered successfully",
+            status_code=201,
+            data={"user_id": user.id}
+        )
 
-        send_welcome_email.delay(user.email, user.username)
-        emit_user_created_event(user.id, role="advocate", profile_payload=profile_data)
-
-        return Response({"message": "Advocate registered"}, status=status.HTTP_201_CREATED)
-
-
-# ----------------------------- LOGIN VIEWS ----------------------------- #
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
+        username = request.data.get("username")
+        password = request.data.get("password")
+        user = authenticate(username=username, password=password)
+        if not user:
+            return custom_response("Invalid credentials", status_code=400, status_type="error")
+        if user.mfa_enabled:
+            return custom_response(
+                "MFA required",
+                status_code=200,
+                data={"user_id": user.id, "mfa_type": user.mfa_type}
+            )
+        return custom_response(
+            "Login successful",
+            status_code=200,
+            data={"user_id": user.id, "role": user.role}
+        )
 
-        if user.role in ["admin", "advocate"] and user.mfa_enabled:
-            return Response({
-                "message": "MFA required",
-                "mfa_type": user.mfa_type,
-                "user_id": user.id
-            }, status=status.HTTP_200_OK)
-
-        tokens = get_tokens_for_user(user)
-        return Response({
-            "message": "Login successful",
-            "token": tokens["access"],
-            "refresh": tokens["refresh"],
-            "user": {"id": user.id, "email": user.email, "role": user.role, "mfa_enabled": user.mfa_enabled}
-        })
-
-
-# --------------------------- GOOGLE LOGIN --------------------------- #
 
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
@@ -105,7 +87,7 @@ class GoogleLoginView(APIView):
     def post(self, request):
         token = request.data.get("token")
         if not token:
-            return Response({"error": "Google token required"}, status=400)
+            return custom_response("Google token required", status_code=400, status_type="error")
 
         try:
             info = id_token.verify_oauth2_token(
@@ -114,117 +96,43 @@ class GoogleLoginView(APIView):
                 settings.GOOGLE_CLIENT_ID
             )
         except ValueError:
-            return Response({"error": "Invalid Google token"}, status=400)
+            return custom_response("Invalid Google token", status_code=400, status_type="error")
 
         email = info.get("email")
         if not email:
-            return Response({"error": "Google account has no email"}, status=400)
+            return custom_response("Google account has no email", status_code=400, status_type="error")
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({"error": "No account found for this email"}, status=404)
-
-        tokens = get_tokens_for_user(user)
-        return Response({
-            "message": "Google login successful",
-            "token": tokens["access"],
-            "refresh": tokens["refresh"],
-            "user": {"id": user.id, "email": user.email, "role": user.role}
+        user, created = User.objects.get_or_create(email=email, defaults={
+            "username": info.get("name") or email.split("@")[0],
+            "role": "client",  # Default role for Google signup
         })
 
+        if created:
+            send_welcome_email_task.delay(user.email, user.username)
 
-# --------------------------- FORGET PASSWORD --------------------------- #
+        return custom_response(
+            "Google login successful",
+            data={"user_id": user.id, "role": user.role}
+        )
 
-class ForgetPasswordView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = ForgetPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data["email"]
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({"error": "No user found"}, status=404)
-
-        otp = str(random.randint(100000, 999999))
-        otp_storage[email] = otp
-
-        try:
-            send_mail(
-                subject="Your password reset OTP",
-                message=f"Your OTP: {otp}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-        except SMTPException:
-            return Response({"error": "Email service unavailable"}, status=503)
-
-        return Response({"message": "OTP sent"}, status=200)
-
-
-# --------------------------- RESET PASSWORD --------------------------- #
-
-class ResetPasswordView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = ResetPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data["email"]
-        otp = serializer.validated_data["otp"]
-        new_password = serializer.validated_data["new_password"]
-
-        stored_otp = otp_storage.get(email)
-
-        if not stored_otp or stored_otp != otp:
-            return Response({"error": "Invalid OTP"}, status=400)
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
-
-        user.set_password(new_password)
-        user.save()
-        del otp_storage[email]
-
-        return Response({"message": "Password reset successful"}, status=200)
-
-
-# ------------------------------ MFA ENABLE ------------------------------ #
 
 class EnableMFAView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
-
-        if user.role not in ("admin", "advocate"):
-            return Response({"message": "MFA allowed only for admin/advocate"}, status=403)
-
+        if user.role not in ["admin", "advocate"]:
+            return custom_response("MFA allowed only for admin/advocate", status_code=403, status_type="error")
         if user.mfa_enabled:
-            return Response({"message": "MFA already enabled"}, status=400)
-
-        user.mfa_secret = generate_totp_secret()
+            return custom_response("MFA already enabled", status_code=400, status_type="error")
+        secret = pyotp.random_base32()
+        user.mfa_secret = secret
         user.mfa_type = "TOTP"
         user.mfa_enabled = True
         user.save()
+        totp_uri = pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name="YourAppName")
+        return custom_response("MFA enabled", data={"mfa_type": "TOTP", "totp_uri": totp_uri})
 
-        qr_code = generate_totp_qr(user)
-
-        return Response({
-            "message": "MFA Enabled",
-            "qr_code": qr_code
-        })
-
-
-# ------------------------------ MFA VERIFY ------------------------------ #
 
 class VerifyMFAView(APIView):
     permission_classes = [AllowAny]
@@ -232,50 +140,39 @@ class VerifyMFAView(APIView):
     def post(self, request):
         user_id = request.data.get("user_id")
         otp = request.data.get("otp")
-
         if not user_id or not otp:
-            return Response({"error": "Missing fields"}, status=400)
-
+            return custom_response("Missing fields", status_code=400, status_type="error")
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
-
+            return custom_response("User not found", status_code=404, status_type="error")
         if not user.mfa_enabled:
-            tokens = get_tokens_for_user(user)
-            return Response({
-                "message": "Login successful",
-                "token": tokens["access"],
-                "refresh": tokens["refresh"]
-            })
-
+            return custom_response("MFA not enabled, login successful")
         totp = pyotp.TOTP(user.mfa_secret)
-
         if not totp.verify(otp):
-            return Response({"error": "Invalid OTP"}, status=400)
-
-        # MFA passed → issue token
-        tokens = get_tokens_for_user(user)
-        return Response({
-            "message": "MFA verified",
-            "token": tokens["access"],
-            "refresh": tokens["refresh"]
-        })
+            return custom_response("Invalid OTP", status_code=400, status_type="error")
+        return custom_response("MFA verified", data={"user_id": user.id, "role": user.role})
 
 
-# --------------------------- TOKEN VALIDATION --------------------------- #
-
-class ValidateTokenView(APIView):
+class ClientProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        user = request.user
-        return Response({
-            "valid": True,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "role": user.role
-            }
-        })
+    def put(self, request):
+        if request.user.role != "client":
+            return custom_response("Not a client", status_code=403, status_type="error")
+        serializer = ClientProfileSerializer(request.user.client_profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return custom_response("Profile updated successfully")
+
+
+class AdvocateProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        if request.user.role != "advocate":
+            return custom_response("Not an advocate", status_code=403, status_type="error")
+        serializer = AdvocateProfileSerializer(request.user.advocate_profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return custom_response("Profile updated successfully")
