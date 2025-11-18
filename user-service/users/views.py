@@ -48,15 +48,21 @@ class AdvocateRegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = AdvocateRegisterSerializer(data=request.data)
+        serializer = AdvocateRegisterSerializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        send_welcome_email_task.delay(user.email, user.username)
+        users = serializer.save()  # this is now a list
+
+        # Send emails and prepare response
+        for user in users:
+            send_welcome_email_task.delay(user.email, user.username)
+
+        user_ids = [user.id for user in users]
         return custom_response(
-            "Advocate registered successfully",
+            "Advocates registered successfully",
             status_code=201,
-            data={"user_id": user.id}
+            data={"user_ids": user_ids}
         )
+
 
 
 class LoginView(APIView):
@@ -104,7 +110,7 @@ class GoogleLoginView(APIView):
 
         user, created = User.objects.get_or_create(email=email, defaults={
             "username": info.get("name") or email.split("@")[0],
-            "role": "client",  # Default role for Google signup
+            "role": "client", 
         })
 
         if created:
