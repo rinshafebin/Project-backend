@@ -172,7 +172,8 @@ SIMPLE_JWT = {
 }
 
 # Celery Configuration with RabbitMQ
-CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_BROKER_URL = 'amqp://guest:guest@rabbitmq:5672//'
+
 CELERY_RESULT_BACKEND = 'rpc://'  
 CELERY_TASK_DEFAULT_QUEUE = 'user_service'
 CELERY_ACCEPT_CONTENT = ['json']

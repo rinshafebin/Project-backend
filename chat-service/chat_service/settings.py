@@ -88,13 +88,10 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)]
- 
+            'hosts': [('redis', 6379)]
         },
     },
 }
-
-
 
 
 
@@ -175,7 +172,7 @@ SIMPLE_JWT = {
 }
 
 # Celery Configuration with RabbitMQ
-CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_BROKER_URL = 'amqp://guest:guest@rabbitmq:5672//'
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
 CELERY_ACCEPT_CONTENT = ['json']
@@ -184,3 +181,4 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Kolkata'
 CELERY_TASK_DEFAULT_QUEUE = 'user_service_queue'
 
+USER_SERVICE_URL = "http://user_service:8001"

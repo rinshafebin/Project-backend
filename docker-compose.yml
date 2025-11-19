@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: singleproject_db
+    environment:
+      POSTGRES_DB: Legal_db
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: 12345
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: singleproject_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Advocate Service
+  advocate-service:
+    build:
+      context: ./advocate-service
+      dockerfile: Dockerfile
+    container_name: advocate_service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/singleproject_db
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=advocate_service.settings
+    volumes:
+      - ./advocate-service:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_network
+    command: python manage.py runserver 0.0.0.0:8000
+
+  # Case Service
+  case-service:
+    build:
+      context: ./case-service
+      dockerfile: Dockerfile
+    container_name: case_service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/singleproject_db
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=case_service.settings
+    volumes:
+      - ./case-service:/app
+    ports:
+      - "8002:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_network
+    command: python manage.py runserver 0.0.0.0:8000
+
+  # Chat Service
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: chat_service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/singleproject_db
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=chat_service.settings
+    volumes:
+      - ./chat-service:/app
+    ports:
+      - "8003:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_network
+    command: python manage.py runserver 0.0.0.0:8000
+
+  # Notifications Service (if you have it)
+  notifications-service:
+    build:
+      context: ./notifications
+      dockerfile: Dockerfile
+    container_name: notifications_service
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/singleproject_db
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=notifications.settings
+    volumes:
+      - ./notifications:/app
+    ports:
+      - "8004:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_network
+    command: python manage.py runserver 0.0.0.0:8000
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
